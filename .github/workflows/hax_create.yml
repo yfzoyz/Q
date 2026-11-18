@@ -202,14 +202,14 @@ jobs:
           set -o pipefail
           xvfb-run -a --server-args="-screen 0 1280x720x24" python -u scripts/Hax/hax_create.py 2>&1 | tee output.log
 
-      - name: 上传执行过程与结果截图
-        if: always() && steps.pick_acc.outputs.has_acc == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: hax-claim-screenshots
-          path: screenshots/
-          if-no-files-found: ignore
-          retention-days: 7
+#      - name: 上传执行过程与结果截图
+#        if: always() && steps.pick_acc.outputs.has_acc == 'true'
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: hax-claim-screenshots
+#          path: screenshots/
+#          if-no-files-found: ignore
+#          retention-days: 7
 
       - name: 清理历史工作流运行记录
         if: always()
