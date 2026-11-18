@@ -1,8 +1,8 @@
 name: Hax 自动登陆自动抢鸡
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'   # 每 30 分钟轮询监听一次（支持 24 小时无人值守挂机抢鸡）
+#  schedule:
+#    - cron: '*/30 * * * *'   # 每 30 分钟轮询监听一次（支持 24 小时无人值守挂机抢鸡）
   workflow_dispatch:
     inputs:
       account:
