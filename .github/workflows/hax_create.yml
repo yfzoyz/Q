@@ -56,16 +56,22 @@ jobs:
           TARGET_ACC: ${{ github.event.inputs.account || 'F1' }}
           F1_PHONE: ${{ secrets.F1_TELEGRAM_PHONE }}
           F1_SESSION: ${{ secrets.F1_TG_STRING_SESSION }}
+          F1_COOKIE: ${{ secrets.F1_HAX_COOKIE }}
           F2_PHONE: ${{ secrets.F2_TELEGRAM_PHONE }}
           F2_SESSION: ${{ secrets.F2_TG_STRING_SESSION }}
+          F2_COOKIE: ${{ secrets.F2_HAX_COOKIE }}
           F3_PHONE: ${{ secrets.F3_TELEGRAM_PHONE }}
           F3_SESSION: ${{ secrets.F3_TG_STRING_SESSION }}
+          F3_COOKIE: ${{ secrets.F3_HAX_COOKIE }}
           F4_PHONE: ${{ secrets.F4_TELEGRAM_PHONE }}
           F4_SESSION: ${{ secrets.F4_TG_STRING_SESSION }}
+          F4_COOKIE: ${{ secrets.F4_HAX_COOKIE }}
           F5_PHONE: ${{ secrets.F5_TELEGRAM_PHONE }}
           F5_SESSION: ${{ secrets.F5_TG_STRING_SESSION }}
+          F5_COOKIE: ${{ secrets.F5_HAX_COOKIE }}
           DEFAULT_PHONE: ${{ secrets.TELEGRAM_PHONE }}
           DEFAULT_SESSION: ${{ secrets.TG_STRING_SESSION }}
+          DEFAULT_COOKIE: ${{ secrets.HAX_COOKIE }}
           F1_NODE: ${{ secrets.F1_NODE_LINK || secrets.H1_NODE_LINK }}
           F2_NODE: ${{ secrets.F2_NODE_LINK || secrets.H2_NODE_LINK }}
           F3_NODE: ${{ secrets.F3_NODE_LINK || secrets.H3_NODE_LINK }}
@@ -79,31 +85,37 @@ jobs:
             F1)
               PHONE="${F1_PHONE:-$DEFAULT_PHONE}"
               SESSION="${F1_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F1_COOKIE:-$DEFAULT_COOKIE}"
               NODE="${F1_NODE:-$DEFAULT_NODE}"
               ;;
             F2)
               PHONE="${F2_PHONE:-$DEFAULT_PHONE}"
               SESSION="${F2_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F2_COOKIE:-$DEFAULT_COOKIE}"
               NODE="${F2_NODE:-$DEFAULT_NODE}"
               ;;
             F3)
               PHONE="${F3_PHONE:-$DEFAULT_PHONE}"
               SESSION="${F3_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F3_COOKIE:-$DEFAULT_COOKIE}"
               NODE="${F3_NODE:-$DEFAULT_NODE}"
               ;;
             F4)
               PHONE="${F4_PHONE:-$DEFAULT_PHONE}"
               SESSION="${F4_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F4_COOKIE:-$DEFAULT_COOKIE}"
               NODE="${F4_NODE:-$DEFAULT_NODE}"
               ;;
             F5)
               PHONE="${F5_PHONE:-$DEFAULT_PHONE}"
               SESSION="${F5_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F5_COOKIE:-$DEFAULT_COOKIE}"
               NODE="${F5_NODE:-$DEFAULT_NODE}"
               ;;
             *)
               PHONE="${F1_PHONE:-$DEFAULT_PHONE}"
               SESSION="${F1_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F1_COOKIE:-$DEFAULT_COOKIE}"
               NODE="${F1_NODE:-$DEFAULT_NODE}"
               ACC="F1"
               ;;
@@ -117,6 +129,15 @@ jobs:
               echo "SSH_PASSWORD<<EOF_SSH_PWD"
               printf '%s\n' "$INPUT_SSH_PWD"
               echo "EOF_SSH_PWD"
+            } >> "$GITHUB_ENV"
+          fi
+
+          if [ -n "$COOKIE" ]; then
+            echo "::add-mask::$COOKIE"
+            {
+              echo "HAX_COOKIE<<EOF_COOKIE"
+              printf '%s\n' "$COOKIE"
+              echo "EOF_COOKIE"
             } >> "$GITHUB_ENV"
           fi
 
@@ -194,6 +215,8 @@ jobs:
           TELEGRAM_API_HASH: ${{ env.TELEGRAM_API_HASH }}
           TG_BOT_TOKEN: ${{ env.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ env.TG_CHAT_ID }}
+          REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+          HAX_COOKIE: ${{ env.HAX_COOKIE }}
           IS_PROXY: ${{ env.IS_PROXY }}
           PROXY_SERVER: ${{ env.PROXY_SERVER }}
           SSH_PASSWORD: ${{ env.SSH_PASSWORD }}
