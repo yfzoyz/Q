@@ -1,0 +1,284 @@
+name: Hax 自动登陆自动抢鸡
+
+on:
+#  schedule:
+#    - cron: '*/30 * * * *'   # 每 30 分钟轮询监听一次（支持 24 小时无人值守挂机抢鸡）
+  workflow_dispatch:
+    inputs:
+      account:
+        description: '使用的账号 (F1, F2, F3, F4, F5)'
+        required: false
+        default: 'F1'
+        type: choice
+        options:
+          - F1
+          - F2
+          - F3
+          - F4
+          - F5
+      target_dc:
+        description: '目标数据中心 (如 US-OpenVZ-3, 留空则默认选取任意可用节点)'
+        required: false
+        default: ''
+      ssh_password:
+        description: '自定义 SSH 密码 (留空则使用默认密码)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  TG_BOT_TOKEN:       ${{ secrets.TG_BOT_TOKEN }}
+  TG_CHAT_ID:         ${{ secrets.TG_CHAT_ID }}
+  # 下面两个只作为"全局默认"，账号级别没配置时才会用到
+  TELEGRAM_API_ID:    ${{ secrets.TELEGRAM_API_ID || '2040' }}
+  TELEGRAM_API_HASH:  ${{ secrets.TELEGRAM_API_HASH || 'b18441a1ff607e10a989891a5462e627' }}
+  TARGET_DATACENTER:  ${{ github.event.inputs.target_dc || '' }}
+
+jobs:
+  claim-vps:
+    name: Hax 抢鸡运行
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+
+    steps:
+      - name: 检出私有脚本仓库
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/hax-q
+          token: ${{ secrets.REPO_TOKEN }}
+          path: .
+
+      - name: 解析与匹配账号凭据 (F1~F5)
+        id: pick_acc
+        env:
+          TARGET_ACC: ${{ github.event.inputs.account || 'F1' }}
+
+          # 账号级 API 凭据（新增，未配置则走 DEFAULT）
+          F1_API_ID:   ${{ secrets.F1_TELEGRAM_API_ID }}
+          F1_API_HASH: ${{ secrets.F1_TELEGRAM_API_HASH }}
+          F2_API_ID:   ${{ secrets.F2_TELEGRAM_API_ID }}
+          F2_API_HASH: ${{ secrets.F2_TELEGRAM_API_HASH }}
+          F3_API_ID:   ${{ secrets.F3_TELEGRAM_API_ID || '2040' }}
+          F3_API_HASH: ${{ secrets.F3_TELEGRAM_API_HASH || 'b18441a1ff607e10a989891a5462e627' }}
+          F4_API_ID:   ${{ secrets.F4_TELEGRAM_API_ID }}
+          F4_API_HASH: ${{ secrets.F4_TELEGRAM_API_HASH }}
+          F5_API_ID:   ${{ secrets.F5_TELEGRAM_API_ID }}
+          F5_API_HASH: ${{ secrets.F5_TELEGRAM_API_HASH }}
+
+          # 全局默认 API 凭据
+          DEFAULT_API_ID:   ${{ secrets.TELEGRAM_API_ID || '2040' }}
+          DEFAULT_API_HASH: ${{ secrets.TELEGRAM_API_HASH || 'b18441a1ff607e10a989891a5462e627' }}
+
+          # 手机号 / Session / Cookie
+          F1_PHONE: ${{ secrets.F1_TELEGRAM_PHONE }}
+          F1_SESSION: ${{ secrets.F1_TG_STRING_SESSION }}
+          F1_COOKIE: ${{ secrets.F1_HAX_COOKIE }}
+          F2_PHONE: ${{ secrets.F2_TELEGRAM_PHONE }}
+          F2_SESSION: ${{ secrets.F2_TG_STRING_SESSION }}
+          F2_COOKIE: ${{ secrets.F2_HAX_COOKIE }}
+          F3_PHONE: ${{ secrets.F3_TELEGRAM_PHONE }}
+          F3_SESSION: ${{ secrets.F3_TG_STRING_SESSION }}
+          F3_COOKIE: ${{ secrets.F3_HAX_COOKIE }}
+          F4_PHONE: ${{ secrets.F4_TELEGRAM_PHONE }}
+          F4_SESSION: ${{ secrets.F4_TG_STRING_SESSION }}
+          F4_COOKIE: ${{ secrets.F4_HAX_COOKIE }}
+          F5_PHONE: ${{ secrets.F5_TELEGRAM_PHONE }}
+          F5_SESSION: ${{ secrets.F5_TG_STRING_SESSION }}
+          F5_COOKIE: ${{ secrets.F5_HAX_COOKIE }}
+          DEFAULT_PHONE: ${{ secrets.TELEGRAM_PHONE }}
+          DEFAULT_SESSION: ${{ secrets.TG_STRING_SESSION }}
+          DEFAULT_COOKIE: ${{ secrets.HAX_COOKIE }}
+
+          F1_NODE: ${{ secrets.F1_NODE_LINK || secrets.H1_NODE_LINK }}
+          F2_NODE: ${{ secrets.F2_NODE_LINK || secrets.H2_NODE_LINK }}
+          F3_NODE: ${{ secrets.F3_NODE_LINK || secrets.H3_NODE_LINK }}
+          F4_NODE: ${{ secrets.F4_NODE_LINK || secrets.H4_NODE_LINK }}
+          F5_NODE: ${{ secrets.F5_NODE_LINK || secrets.H5_NODE_LINK }}
+          DEFAULT_NODE: ${{ secrets.NODE_LINK }}
+        run: |
+          RAW_ACC="${TARGET_ACC:-F1}"
+          ACC=$(echo "$RAW_ACC" | tr '[:lower:]' '[:upper:]' | tr -dc 'A-Z0-9')
+          case "$ACC" in
+            F1)
+              PHONE="${F1_PHONE:-$DEFAULT_PHONE}"
+              SESSION="${F1_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F1_COOKIE:-$DEFAULT_COOKIE}"
+              NODE="${F1_NODE:-$DEFAULT_NODE}"
+              API_ID="${F1_API_ID:-$DEFAULT_API_ID}"
+              API_HASH="${F1_API_HASH:-$DEFAULT_API_HASH}"
+              ;;
+            F2)
+              PHONE="${F2_PHONE:-$DEFAULT_PHONE}"
+              SESSION="${F2_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F2_COOKIE:-$DEFAULT_COOKIE}"
+              NODE="${F2_NODE:-$DEFAULT_NODE}"
+              API_ID="${F2_API_ID:-$DEFAULT_API_ID}"
+              API_HASH="${F2_API_HASH:-$DEFAULT_API_HASH}"
+              ;;
+            F3)
+              PHONE="${F3_PHONE:-$DEFAULT_PHONE}"
+              SESSION="${F3_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F3_COOKIE:-$DEFAULT_COOKIE}"
+              NODE="${F3_NODE:-$DEFAULT_NODE}"
+              API_ID="${F3_API_ID:-$DEFAULT_API_ID}"
+              API_HASH="${F3_API_HASH:-$DEFAULT_API_HASH}"
+              ;;
+            F4)
+              PHONE="${F4_PHONE:-$DEFAULT_PHONE}"
+              SESSION="${F4_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F4_COOKIE:-$DEFAULT_COOKIE}"
+              NODE="${F4_NODE:-$DEFAULT_NODE}"
+              API_ID="${F4_API_ID:-$DEFAULT_API_ID}"
+              API_HASH="${F4_API_HASH:-$DEFAULT_API_HASH}"
+              ;;
+            F5)
+              PHONE="${F5_PHONE:-$DEFAULT_PHONE}"
+              SESSION="${F5_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F5_COOKIE:-$DEFAULT_COOKIE}"
+              NODE="${F5_NODE:-$DEFAULT_NODE}"
+              API_ID="${F5_API_ID:-$DEFAULT_API_ID}"
+              API_HASH="${F5_API_HASH:-$DEFAULT_API_HASH}"
+              ;;
+            *)
+              PHONE="${F1_PHONE:-$DEFAULT_PHONE}"
+              SESSION="${F1_SESSION:-$DEFAULT_SESSION}"
+              COOKIE="${F1_COOKIE:-$DEFAULT_COOKIE}"
+              NODE="${F1_NODE:-$DEFAULT_NODE}"
+              API_ID="${F1_API_ID:-$DEFAULT_API_ID}"
+              API_HASH="${F1_API_HASH:-$DEFAULT_API_HASH}"
+              ACC="F1"
+              ;;
+          esac
+
+          # 校验 API_ID 必须是纯数字
+          if ! echo "$API_ID" | grep -Eq '^[0-9]+$'; then
+            echo "❌ 账号 $ACC 的 TELEGRAM_API_ID 非法 (\"$API_ID\")，请检查 secret"
+            exit 1
+          fi
+          if [ -z "$API_HASH" ]; then
+            echo "❌ 账号 $ACC 的 TELEGRAM_API_HASH 为空，请检查 secret"
+            exit 1
+          fi
+
+          # 安全读取自定义 SSH 密码
+          INPUT_SSH_PWD=$(python3 -c 'import json, os; d = json.load(open(os.environ.get("GITHUB_EVENT_PATH", ""), encoding="utf-8")); print(((d.get("inputs") or {}).get("ssh_password") or "").strip())' 2>/dev/null || true)
+          if [ -n "$INPUT_SSH_PWD" ]; then
+            echo "::add-mask::$INPUT_SSH_PWD"
+            {
+              echo "SSH_PASSWORD<<EOF_SSH_PWD"
+              printf '%s\n' "$INPUT_SSH_PWD"
+              echo "EOF_SSH_PWD"
+            } >> "$GITHUB_ENV"
+          fi
+
+          if [ -n "$COOKIE" ]; then
+            echo "::add-mask::$COOKIE"
+            {
+              echo "HAX_COOKIE<<EOF_COOKIE"
+              printf '%s\n' "$COOKIE"
+              echo "EOF_COOKIE"
+            } >> "$GITHUB_ENV"
+          fi
+
+          if [ -z "$PHONE" ] || [ -z "$SESSION" ]; then
+            echo "has_acc=false" >> $GITHUB_OUTPUT
+            echo "⚠️ [跳过] 账号 $ACC 未配置 TELEGRAM_PHONE 或 TG_STRING_SESSION"
+          else
+            echo "has_acc=true" >> $GITHUB_OUTPUT
+            echo "ACCOUNT_NAME=$ACC" >> $GITHUB_ENV
+            echo "TELEGRAM_PHONE=$PHONE" >> $GITHUB_ENV
+            echo "TG_STRING_SESSION=$SESSION" >> $GITHUB_ENV
+            echo "NODE_LINK=$NODE" >> $GITHUB_ENV
+
+            # ★ 账号级 API 凭据（核心改动）
+            echo "ACCOUNT_API_ID=$API_ID"     >> $GITHUB_ENV
+            echo "ACCOUNT_API_HASH=$API_HASH" >> $GITHUB_ENV
+
+            echo "::add-mask::$PHONE"
+            echo "::add-mask::$SESSION"
+            echo "::add-mask::$API_HASH"
+            [ -n "$NODE" ] && echo "::add-mask::$NODE"
+
+            echo "✅ 成功匹配账号凭据: $ACC (API_ID=$API_ID, 已脱敏保护)"
+          fi
+
+      - name: 配置 Python 3.11
+        if: steps.pick_acc.outputs.has_acc == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'scripts/Hax/requirements.txt'
+
+      - name: 安装基础环境与依赖
+        if: steps.pick_acc.outputs.has_acc == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb \
+            curl \
+            libglib2.0-0 \
+            libnss3 \
+            libgconf-2-4 \
+            libfontconfig1 \
+            python3-tk \
+            python3-dev \
+            jq
+          python -m pip install --upgrade pip wheel setuptools
+          pip install -r scripts/Hax/requirements.txt
+          sbase install chromedriver
+
+      - name: 设置代理 (sing-box)
+        if: steps.pick_acc.outputs.has_acc == 'true'
+        env:
+          NODE_LINK: ${{ env.NODE_LINK }}
+          TG_BOT_TOKEN: ${{ env.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ env.TG_CHAT_ID }}
+        run: |
+          chmod +x scripts/setup_proxy.sh
+          if ! bash scripts/setup_proxy.sh; then
+            echo "❌ 代理设置失败，发送通知..."
+            curl -s -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+              -d chat_id="${TG_CHAT_ID}" \
+              -d parse_mode="HTML" \
+              -d text="❌ <b>Hax 抢鸡失败</b>%0A%0A原因: 代理节点不可用%0A仓库: ${{ github.repository }}%0A查看: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --max-time 10 || true
+            exit 1
+          fi
+          if [ -f proxy.env ]; then
+            cat proxy.env >> $GITHUB_ENV
+          fi
+
+      - name: 启动虚拟桌面并执行自动抢鸡
+        if: steps.pick_acc.outputs.has_acc == 'true'
+        env:
+          ACCOUNT_NAME: ${{ env.ACCOUNT_NAME }}
+          TELEGRAM_PHONE: ${{ env.TELEGRAM_PHONE }}
+          TG_STRING_SESSION: ${{ env.TG_STRING_SESSION }}
+          # ★ 使用账号级 API 凭据（核心改动）
+          TELEGRAM_API_ID:   ${{ env.ACCOUNT_API_ID }}
+          TELEGRAM_API_HASH: ${{ env.ACCOUNT_API_HASH }}
+          TG_BOT_TOKEN: ${{ env.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ env.TG_CHAT_ID }}
+          REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+          HAX_COOKIE: ${{ env.HAX_COOKIE }}
+          IS_PROXY: ${{ env.IS_PROXY }}
+          PROXY_SERVER: ${{ env.PROXY_SERVER }}
+          SSH_PASSWORD: ${{ env.SSH_PASSWORD }}
+          TARGET_DATACENTER: ${{ env.TARGET_DATACENTER }}
+        run: |
+          set -o pipefail
+          xvfb-run -a --server-args="-screen 0 1280x720x24" python -u scripts/Hax/hax_create.py 2>&1 | tee output.log
+
+      - name: 清理历史工作流运行记录
+        if: always()
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          delete_workflow_pattern: ${{ github.workflow }}
+          retain_days: 0
+          keep_minimum_runs: 2
