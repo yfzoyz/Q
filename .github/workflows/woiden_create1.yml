@@ -166,23 +166,28 @@ jobs:
           cache: 'pip'
           cache-dependency-path: 'scripts/Woiden/requirements.txt'
 
+      - name: 缓存运行组件 (sing-box, drivers)
+        if: steps.pick_acc.outputs.has_acc == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/selenium
+            /usr/local/bin/sing-box
+            /tmp/sing-box
+          key: ${{ runner.os }}-tools-v1-${{ hashFiles('scripts/setup_proxy.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-tools-v1-
+
       - name: 安装基础环境与依赖
         if: steps.pick_acc.outputs.has_acc == 'true'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            xvfb \
-            curl \
-            libglib2.0-0 \
-            libnss3 \
-            libgconf-2-4 \
-            libfontconfig1 \
-            python3-tk \
-            python3-dev \
-            jq
-          python -m pip install --upgrade pip wheel setuptools
-          pip install -r scripts/Woiden/requirements.txt
-          sbase install chromedriver
+          if ! command -v xvfb-run &>/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+          fi
+          pip install --prefer-binary -r scripts/Woiden/requirements.txt
+          if ! command -v chromedriver &>/dev/null && [ ! -f /usr/local/bin/chromedriver ]; then
+            sbase install chromedriver
+          fi
 
       - name: 设置代理 (sing-box)
         if: steps.pick_acc.outputs.has_acc == 'true'
